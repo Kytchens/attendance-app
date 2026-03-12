@@ -42,6 +42,7 @@ interface DailyRow {
   shortDayFlag: string;
   integrityFlag: string;
   possibleShiftChange: string;
+  mistakeType: string;
   effectiveHours: string;
   [key: string]: unknown;
 }

@@ -35,6 +35,7 @@ export interface DailyRow {
   shortDayFlag: string;
   integrityFlag: string;
   possibleShiftChange: string;
+  mistakeType: string;
 }
 
 export interface SummaryRow {
@@ -309,6 +310,14 @@ export function processAttendance(
       possibleShiftChange = `YES — Consider shift starting ${suggestedStart} (late by ${fmtMinutes(lateByMin)})`;
     }
 
+    // Mistake Type classification
+    let mistakeType = "";
+    if (isPresent && inTimeMin !== null && outTimeMin === null) {
+      mistakeType = "Employee Mistake — Forgot to clock out";
+    } else if (isPresent && lateByMin !== null && lateByMin >= 60) {
+      mistakeType = "Shift Assignment Mistake — Wrong shift assigned";
+    }
+
     daily.push({
       employeeId: empId, employeeName: empName, jobTitle, department, location,
       reportingManager: manager, date: dateStr, assignedShift: shiftStr,
@@ -321,7 +330,7 @@ export function processAttendance(
       regularizationNeeded: regNeeded, regularizationReason: regReasons.join("; "),
       regularizationFiled: regFiled, regularizationType: regType,
       effectiveHours: effHours || "0:00", totalHours: totalHours || "0:00",
-      shortDayFlag: shortDay, integrityFlag, possibleShiftChange,
+      shortDayFlag: shortDay, integrityFlag, possibleShiftChange, mistakeType,
     });
   }
 
