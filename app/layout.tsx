@@ -12,6 +12,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "HyprKytchen Attendance",
   description: "Attendance processing pipeline",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
