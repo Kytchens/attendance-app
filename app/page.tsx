@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import Image from "next/image";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -130,6 +131,35 @@ function rowColorClass(row: DailyRow): string {
 /* ------------------------------------------------------------------ */
 
 export default function Home() {
+  /* ── Auth state ── */
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginUser, setLoginUser] = useState("");
+  const [loginPass, setLoginPass] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Check session on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("kytchens_auth") === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = useCallback(() => {
+    if (loginUser === "KytchensHR" && loginPass === "kytchens@2026") {
+      setIsAuthenticated(true);
+      setLoginError("");
+      if (typeof window !== "undefined") sessionStorage.setItem("kytchens_auth", "true");
+    } else {
+      setLoginError("Invalid username or password");
+    }
+  }, [loginUser, loginPass]);
+
+  const handleLogout = useCallback(() => {
+    setIsAuthenticated(false);
+    if (typeof window !== "undefined") sessionStorage.removeItem("kytchens_auth");
+  }, []);
+
   const [files, setFiles] = useState<Record<FileKey, File | null>>({
     daily: null,
     timeAssignments: null,
@@ -522,8 +552,113 @@ export default function Home() {
   /*  Main render                                                      */
   /* ---------------------------------------------------------------- */
 
+  /* ── Login Screen ── */
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
+        <div className="w-full max-w-sm animate-card-pop">
+          <div className="bg-white rounded-2xl border border-[#E8E8E8] shadow-[0_8px_30px_rgba(0,0,0,0.08)] p-8">
+            {/* Logo + Title */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="h-16 w-16 rounded-2xl bg-[#FFF0E6] flex items-center justify-center mb-4">
+                <Image
+                  src="/logo.png"
+                  alt="Kytchens"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-xl object-contain"
+                />
+              </div>
+              <h1 className="text-[20px] font-bold text-[#111111] tracking-[-0.02em]">Welcome back</h1>
+              <p className="text-[13px] text-[#8E8E93] mt-1">Sign in to Kytchens Attendance</p>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[12px] font-semibold text-[#6B7280] uppercase tracking-wide mb-1.5">Username</label>
+                <input
+                  type="text"
+                  value={loginUser}
+                  onChange={(e) => { setLoginUser(e.target.value); setLoginError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                  placeholder="Enter username"
+                  className="w-full rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3 text-[14px] text-[#111111] outline-none transition-all placeholder:text-[#C7C7CC] focus:border-[#FF6F3A] focus:ring-2 focus:ring-[#FF6F3A]/20 focus:bg-white"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-[12px] font-semibold text-[#6B7280] uppercase tracking-wide mb-1.5">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={loginPass}
+                    onChange={(e) => { setLoginPass(e.target.value); setLoginError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                    placeholder="Enter password"
+                    className="w-full rounded-xl border border-[#E8E8E8] bg-[#FAFAFA] px-4 py-3 pr-11 text-[14px] text-[#111111] outline-none transition-all placeholder:text-[#C7C7CC] focus:border-[#FF6F3A] focus:ring-2 focus:ring-[#FF6F3A]/20 focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8E8E93] hover:text-[#6B7280] transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      {showPassword ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                      ) : (
+                        <>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </>
+                      )}
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {loginError && (
+                <div className="flex items-center gap-2 rounded-xl bg-red-50 ring-1 ring-red-200/50 px-3 py-2.5 animate-badge-in">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-[13px] font-medium text-red-700">{loginError}</span>
+                </div>
+              )}
+
+              <button
+                onClick={handleLogin}
+                className="tap-target w-full bg-[#FF6F3A] rounded-xl px-4 py-3.5 text-white font-semibold text-[14px] shadow-[0_4px_20px_rgba(255,85,0,0.3)] hover:shadow-[0_8px_30px_rgba(255,85,0,0.35)] transition-all mt-2"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+
+          <p className="text-center text-[11px] text-[#8E8E93] mt-4">Kytchens Attendance Pipeline v1.0</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* ── Welcome + Logout ── */}
+      <div className="flex items-center justify-between animate-fade-up">
+        <p className="text-[13px] text-[#6B7280]">
+          Welcome, <span className="font-semibold text-[#111111]">KytchensHR</span>
+        </p>
+        <button
+          onClick={handleLogout}
+          className="tap-target flex items-center gap-1.5 rounded-xl border border-[#E8E8E8] bg-white px-3 py-1.5 text-[12px] font-medium text-[#6B7280] transition-all hover:border-[#D0D0D0] hover:text-[#111111]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Sign Out
+        </button>
+      </div>
+
       {/* ── Upload Section ── */}
       <section className="animate-fade-up">
         <h2 className="text-[15px] font-semibold text-[#111111] mb-3">
