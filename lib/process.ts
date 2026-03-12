@@ -298,16 +298,27 @@ export function processAttendance(
       integrityFlag = "REVIEW - Near buffer edge";
     }
 
-    // Possible Shift Change — if late by 60+ min, suggest shift based on actual clock-in
+    // Early arrival detection
+    let earlyByMin = 0;
+    if (isPresent && inTimeMin !== null && shiftStartMin !== null) {
+      const diff = minutesDiffCircular(shiftStartMin, inTimeMin);
+      if (diff < 0) earlyByMin = Math.abs(diff);
+    }
+
+    // Possible Shift Change — if late by 60+ min OR early by 60+ min
     let possibleShiftChange = "";
-    if (isPresent && lateByMin !== null && lateByMin >= 60 && inTimeMin !== null) {
-      const suggestedStartH = Math.floor(inTimeMin / 60);
+    if (isPresent && inTimeMin !== null) {
+      // Round clock-in to nearest 30 min for a clean shift suggestion
       const suggestedStartM = inTimeMin % 60;
-      // Round to nearest 30 min for a clean shift suggestion
-      const roundedMin = suggestedStartM >= 15 && suggestedStartM < 45 ? 30 : suggestedStartM >= 45 ? 0 : 0;
-      const roundedH = suggestedStartM >= 45 ? suggestedStartH + 1 : suggestedStartH;
-      const suggestedStart = `${String(roundedH % 24).padStart(2, "0")}:${String(roundedMin).padStart(2, "0")}`;
-      possibleShiftChange = `YES — Consider shift starting ${suggestedStart} (late by ${fmtMinutes(lateByMin)})`;
+      const roundedMin = suggestedStartM >= 15 && suggestedStartM < 45 ? 30 : 0;
+      const roundedH = (suggestedStartM >= 45 ? Math.floor(inTimeMin / 60) + 1 : Math.floor(inTimeMin / 60)) % 24;
+      const suggestedStart = `${String(roundedH).padStart(2, "0")}:${String(roundedMin).padStart(2, "0")}`;
+
+      if (lateByMin !== null && lateByMin >= 60) {
+        possibleShiftChange = `YES — Consider shift starting ${suggestedStart} (late by ${fmtMinutes(lateByMin)})`;
+      } else if (earlyByMin >= 60) {
+        possibleShiftChange = `YES — Consider shift starting ${suggestedStart} (early by ${fmtMinutes(earlyByMin)})`;
+      }
     }
 
     // Mistake Type classification
@@ -315,7 +326,9 @@ export function processAttendance(
     if (isPresent && inTimeMin !== null && outTimeMin === null) {
       mistakeType = "Employee Mistake — Forgot to clock out";
     } else if (isPresent && lateByMin !== null && lateByMin >= 60) {
-      mistakeType = "Shift Assignment Mistake — Wrong shift assigned";
+      mistakeType = "Shift Assignment Mistake — Late by " + fmtMinutes(lateByMin);
+    } else if (isPresent && earlyByMin >= 60) {
+      mistakeType = "Shift Assignment Mistake — Early by " + fmtMinutes(earlyByMin);
     }
 
     daily.push({
