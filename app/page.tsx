@@ -176,6 +176,7 @@ export default function Home() {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [dashboardFilter, setDashboardFilter] = useState<string>("");
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRefs = useRef<Record<FileKey, HTMLInputElement | null>>({
     daily: null,
@@ -296,22 +297,51 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Filtered rows (by location + employee)
+  // Dashboard filter function — applies quick-filter from dashboard card taps
+  const applyDashboardFilter = useCallback((rows: DailyRow[]) => {
+    if (!dashboardFilter) return rows;
+    switch (dashboardFilter) {
+      case "late": return rows.filter((r) => r.lateArrivalFlag === "YES");
+      case "absent": return rows.filter((r) => r.kekaStatus === "A");
+      case "integrity": return rows.filter((r) => r.integrityFlag.startsWith("REVIEW"));
+      case "shortDays": return rows.filter((r) => r.shortDayFlag === "YES");
+      case "regsNeeded": return rows.filter((r) => r.regularizationNeeded === "YES");
+      case "mismatches": return rows.filter((r) => r.shiftMismatchFlag === "YES");
+      case "shiftIssues": return rows.filter((r) => r.possibleShiftChange !== "");
+      default: return rows;
+    }
+  }, [dashboardFilter]);
+
+  const applyDashboardFilterSummary = useCallback((rows: SummaryRow[]) => {
+    if (!dashboardFilter) return rows;
+    switch (dashboardFilter) {
+      case "late": return rows.filter((r) => (r.totalLateArrivals as number) > 0);
+      case "absent": return rows.filter((r) => (r.totalAbsences as number) > 0);
+      case "bonusYes": return rows.filter((r) => r.attendanceBonusEligible === "YES");
+      case "bonusNo": return rows.filter((r) => r.attendanceBonusEligible === "NO");
+      case "integrity": return rows.filter((r) => (r.shortDays as number) > 0 || rows.length > 0); // show all with flag
+      default: return rows;
+    }
+  }, [dashboardFilter]);
+
+  // Filtered rows (by location + employee + dashboard filter)
   const filteredDaily = useMemo(() => {
     if (!data) return [];
     let rows = data.daily;
     if (selectedLocation) rows = rows.filter((r) => r.location === selectedLocation);
     if (selectedEmployee) rows = rows.filter((r) => r.employeeId === selectedEmployee);
+    rows = applyDashboardFilter(rows);
     return rows;
-  }, [data, selectedEmployee, selectedLocation]);
+  }, [data, selectedEmployee, selectedLocation, applyDashboardFilter]);
 
   const filteredSummary = useMemo(() => {
     if (!data) return [];
     let rows = data.summary;
     if (selectedLocation) rows = rows.filter((r) => r.location === selectedLocation);
     if (selectedEmployee) rows = rows.filter((r) => r.employeeId === selectedEmployee);
+    rows = applyDashboardFilterSummary(rows);
     return rows;
-  }, [data, selectedEmployee, selectedLocation]);
+  }, [data, selectedEmployee, selectedLocation, applyDashboardFilterSummary]);
 
   const lateRows = useMemo(
     () => filteredDaily.filter((r) => r.lateArrivalFlag === "YES"),
@@ -808,10 +838,10 @@ export default function Home() {
           {/* Row 1: Key metrics — 4 big cards */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: "Employees", value: data.stats.employees, color: "#FF6F3A", sub: `${locationList.length} kitchens`, action: () => setActiveTab("summary") },
-              { label: "Attendance Rate", value: data.stats.dailyRecords > 0 ? `${Math.round(((data.stats.dailyRecords - data.stats.totalAbsences) / data.stats.dailyRecords) * 100)}%` : "—", color: "#22C55E", sub: `${data.stats.totalAbsences} absences`, action: () => setActiveTab("daily") },
-              { label: "Late Arrivals", value: data.stats.lateArrivals, color: "#EF4444", sub: `${data.stats.lopDays} LOP days`, action: () => setActiveTab("late") },
-              { label: "Bonus Eligible", value: data.stats.bonusEligible, color: "#22C55E", sub: `${data.stats.bonusNotEligible} not eligible`, action: () => setActiveTab("summary") },
+              { label: "Employees", value: data.stats.employees, color: "#FF6F3A", sub: `${locationList.length} kitchens`, action: () => { setDashboardFilter(""); setActiveTab("summary"); } },
+              { label: "Attendance Rate", value: data.stats.dailyRecords > 0 ? `${Math.round(((data.stats.dailyRecords - data.stats.totalAbsences) / data.stats.dailyRecords) * 100)}%` : "—", color: "#22C55E", sub: `${data.stats.totalAbsences} absences`, action: () => { setDashboardFilter("absent"); setActiveTab("daily"); } },
+              { label: "Late Arrivals", value: data.stats.lateArrivals, color: "#EF4444", sub: `${data.stats.lopDays} LOP days`, action: () => { setDashboardFilter("late"); setActiveTab("daily"); } },
+              { label: "Bonus Eligible", value: data.stats.bonusEligible, color: "#22C55E", sub: `${data.stats.bonusNotEligible} not eligible`, action: () => { setDashboardFilter("bonusYes"); setActiveTab("summary"); } },
             ].map((stat, i) => (
               <div
                 key={stat.label}
@@ -828,12 +858,12 @@ export default function Home() {
           {/* Row 2: Secondary metrics — compact row */}
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {[
-              { label: "Shift Mismatches", value: data.stats.shiftMismatches, color: "#FF9500", action: () => setActiveTab("mismatches") },
-              { label: "Regs Needed", value: data.stats.regsNeeded, color: "#3B82F6", action: () => setActiveTab("daily") },
-              { label: "Short Days", value: data.stats.shortDays, color: "#FF9500", action: () => setActiveTab("daily") },
-              { label: "Integrity Flags", value: data.stats.integrityFlags, color: "#EF4444", action: () => setActiveTab("daily") },
-              { label: "LOP Days", value: data.stats.lopDays, color: "#FF9500", action: () => setActiveTab("late") },
-              { label: "Total Absences", value: data.stats.totalAbsences, color: "#EF4444", action: () => setActiveTab("daily") },
+              { label: "Shift Mismatches", value: data.stats.shiftMismatches, color: "#FF9500", action: () => { setDashboardFilter("mismatches"); setActiveTab("daily"); } },
+              { label: "Regs Needed", value: data.stats.regsNeeded, color: "#3B82F6", action: () => { setDashboardFilter("regsNeeded"); setActiveTab("daily"); } },
+              { label: "Short Days", value: data.stats.shortDays, color: "#FF9500", action: () => { setDashboardFilter("shortDays"); setActiveTab("daily"); } },
+              { label: "Integrity Flags", value: data.stats.integrityFlags, color: "#EF4444", action: () => { setDashboardFilter("integrity"); setActiveTab("daily"); } },
+              { label: "LOP Days", value: data.stats.lopDays, color: "#FF9500", action: () => { setDashboardFilter("late"); setActiveTab("daily"); } },
+              { label: "Total Absences", value: data.stats.totalAbsences, color: "#EF4444", action: () => { setDashboardFilter("absent"); setActiveTab("daily"); } },
             ].map((stat, i) => (
               <div
                 key={stat.label}
@@ -927,7 +957,32 @@ export default function Home() {
         <section className="animate-slide-up stagger-2">
           {/* Header row with filters */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 className="text-[15px] font-semibold text-[#111111]">Data Preview</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-[15px] font-semibold text-[#111111]">Data Preview</h2>
+              {dashboardFilter && (
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#FFF0E6] text-[#FF6F3A] ring-1 ring-[#FF6F3A]/20 animate-badge-in">
+                  {{
+                    late: "Late Arrivals",
+                    absent: "Absences",
+                    integrity: "Integrity Flags",
+                    shortDays: "Short Days",
+                    regsNeeded: "Regs Needed",
+                    mismatches: "Shift Mismatches",
+                    shiftIssues: "Shift Issues",
+                    bonusYes: "Bonus Eligible",
+                    bonusNo: "Not Eligible",
+                  }[dashboardFilter] || dashboardFilter}
+                  <button
+                    onClick={() => setDashboardFilter("")}
+                    className="h-4 w-4 rounded-full bg-[#FF6F3A]/20 flex items-center justify-center hover:bg-[#FF6F3A]/30"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-[#FF6F3A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               {/* Location filter */}
               <select
@@ -1033,7 +1088,7 @@ export default function Home() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => { setDashboardFilter(""); setActiveTab(tab.key); }}
                   className={`tap-target whitespace-nowrap rounded-xl px-4 py-2 text-[12px] font-semibold transition-all duration-200 ${
                     isActive
                       ? "bg-[#FF6F3A] text-white shadow-[0_2px_8px_rgba(255,111,58,0.3)]"
