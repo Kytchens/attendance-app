@@ -34,6 +34,7 @@ export interface DailyRow {
   totalHours: string;
   shortDayFlag: string;
   integrityFlag: string;
+  possibleShiftChange: string;
 }
 
 export interface SummaryRow {
@@ -296,6 +297,18 @@ export function processAttendance(
       integrityFlag = "REVIEW - Near buffer edge";
     }
 
+    // Possible Shift Change — if late by 60+ min, suggest shift based on actual clock-in
+    let possibleShiftChange = "";
+    if (isPresent && lateByMin !== null && lateByMin >= 60 && inTimeMin !== null) {
+      const suggestedStartH = Math.floor(inTimeMin / 60);
+      const suggestedStartM = inTimeMin % 60;
+      // Round to nearest 30 min for a clean shift suggestion
+      const roundedMin = suggestedStartM >= 15 && suggestedStartM < 45 ? 30 : suggestedStartM >= 45 ? 0 : 0;
+      const roundedH = suggestedStartM >= 45 ? suggestedStartH + 1 : suggestedStartH;
+      const suggestedStart = `${String(roundedH % 24).padStart(2, "0")}:${String(roundedMin).padStart(2, "0")}`;
+      possibleShiftChange = `YES — Consider shift starting ${suggestedStart} (late by ${fmtMinutes(lateByMin)})`;
+    }
+
     daily.push({
       employeeId: empId, employeeName: empName, jobTitle, department, location,
       reportingManager: manager, date: dateStr, assignedShift: shiftStr,
@@ -308,7 +321,7 @@ export function processAttendance(
       regularizationNeeded: regNeeded, regularizationReason: regReasons.join("; "),
       regularizationFiled: regFiled, regularizationType: regType,
       effectiveHours: effHours || "0:00", totalHours: totalHours || "0:00",
-      shortDayFlag: shortDay, integrityFlag,
+      shortDayFlag: shortDay, integrityFlag, possibleShiftChange,
     });
   }
 

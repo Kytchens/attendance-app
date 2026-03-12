@@ -41,6 +41,7 @@ interface DailyRow {
   regularizationType: string;
   shortDayFlag: string;
   integrityFlag: string;
+  possibleShiftChange: string;
   effectiveHours: string;
   [key: string]: unknown;
 }
