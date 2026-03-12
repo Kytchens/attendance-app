@@ -802,34 +802,122 @@ export default function Home() {
 
       {/* ── Dashboard ── */}
       {data && (
-        <section className="animate-slide-up">
-          <h2 className="text-[15px] font-semibold text-[#111111] mb-3">Dashboard</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <section className="space-y-4 animate-slide-up">
+          <h2 className="text-[15px] font-semibold text-[#111111]">Dashboard</h2>
+
+          {/* Row 1: Key metrics — 4 big cards */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: "Employees", value: data.stats.employees, color: "#FF6F3A", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" },
-              { label: "Late Arrivals", value: data.stats.lateArrivals, color: "#EF4444", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-              { label: "Total Absences", value: data.stats.totalAbsences, color: "#EF4444", icon: "M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636" },
-              { label: "LOP Days", value: data.stats.lopDays, color: "#FF9500", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" },
-              { label: "Shift Mismatches", value: data.stats.shiftMismatches, color: "#FF9500", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" },
-              { label: "Regs Needed", value: data.stats.regsNeeded, color: "#3B82F6", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
-              { label: "Bonus Eligible", value: data.stats.bonusEligible, color: "#22C55E", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-              { label: "Not Eligible", value: data.stats.bonusNotEligible, color: "#EF4444", icon: "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" },
-              { label: "Short Days", value: data.stats.shortDays, color: "#FF9500", icon: "M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" },
-              { label: "Integrity Flags", value: data.stats.integrityFlags, color: "#EF4444", icon: "M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+              { label: "Employees", value: data.stats.employees, color: "#FF6F3A", sub: `${locationList.length} kitchens`, action: () => setActiveTab("summary") },
+              { label: "Attendance Rate", value: data.stats.dailyRecords > 0 ? `${Math.round(((data.stats.dailyRecords - data.stats.totalAbsences) / data.stats.dailyRecords) * 100)}%` : "—", color: "#22C55E", sub: `${data.stats.totalAbsences} absences`, action: () => setActiveTab("daily") },
+              { label: "Late Arrivals", value: data.stats.lateArrivals, color: "#EF4444", sub: `${data.stats.lopDays} LOP days`, action: () => setActiveTab("late") },
+              { label: "Bonus Eligible", value: data.stats.bonusEligible, color: "#22C55E", sub: `${data.stats.bonusNotEligible} not eligible`, action: () => setActiveTab("summary") },
             ].map((stat, i) => (
               <div
                 key={stat.label}
-                className={`bg-white rounded-2xl border border-[#E8E8E8] p-4 transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:border-[#D0D0D0] animate-card-pop stagger-${i + 1}`}
+                onClick={stat.action}
+                className={`bg-white rounded-2xl border border-[#E8E8E8] p-4 cursor-pointer tap-row transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:border-[#D0D0D0] animate-card-pop stagger-${i + 1}`}
               >
-                <div className="h-9 w-9 rounded-xl flex items-center justify-center mb-3" style={{ backgroundColor: `${stat.color}15` }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5" style={{ color: stat.color }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d={stat.icon} />
-                  </svg>
-                </div>
-                <p className="text-[28px] font-bold leading-none tracking-tight text-[#111111] animate-count-up">{stat.value}</p>
-                <p className="text-[11px] mt-1.5 font-medium text-[#6B7280]">{stat.label}</p>
+                <p className="text-[11px] font-semibold text-[#8E8E93] uppercase tracking-wide mb-1">{stat.label}</p>
+                <p className="text-[32px] font-bold leading-none tracking-tight animate-count-up" style={{ color: stat.color }}>{stat.value}</p>
+                <p className="text-[11px] mt-2 text-[#6B7280]">{stat.sub}</p>
               </div>
             ))}
+          </div>
+
+          {/* Row 2: Secondary metrics — compact row */}
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {[
+              { label: "Shift Mismatches", value: data.stats.shiftMismatches, color: "#FF9500", action: () => setActiveTab("mismatches") },
+              { label: "Regs Needed", value: data.stats.regsNeeded, color: "#3B82F6", action: () => setActiveTab("daily") },
+              { label: "Short Days", value: data.stats.shortDays, color: "#FF9500", action: () => setActiveTab("daily") },
+              { label: "Integrity Flags", value: data.stats.integrityFlags, color: "#EF4444", action: () => setActiveTab("daily") },
+              { label: "LOP Days", value: data.stats.lopDays, color: "#FF9500", action: () => setActiveTab("late") },
+              { label: "Total Absences", value: data.stats.totalAbsences, color: "#EF4444", action: () => setActiveTab("daily") },
+            ].map((stat, i) => (
+              <div
+                key={stat.label}
+                onClick={stat.action}
+                className={`bg-white rounded-xl border border-[#E8E8E8] px-3 py-3 cursor-pointer tap-row transition-all hover:shadow-sm hover:border-[#D0D0D0] animate-card-pop stagger-${i + 5}`}
+              >
+                <p className="text-[20px] font-bold leading-none tracking-tight" style={{ color: stat.color }}>{stat.value}</p>
+                <p className="text-[10px] mt-1 font-medium text-[#8E8E93] leading-tight">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Row 3: Top Latecomers + Shift Issues side-by-side */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Top Latecomers */}
+            <div className="bg-white rounded-2xl border border-[#E8E8E8] overflow-hidden animate-fade-up stagger-3">
+              <div className="px-4 py-3 border-b border-[#F0F0F0] flex items-center justify-between">
+                <h3 className="text-[13px] font-semibold text-[#111111]">Top Latecomers</h3>
+                <button onClick={() => setActiveTab("late")} className="text-[11px] font-medium text-[#FF6F3A] hover:underline">View all</button>
+              </div>
+              {(() => {
+                const topLate = [...data.summary]
+                  .filter(r => (r.totalLateArrivals as number) > 0)
+                  .sort((a, b) => (b.totalLateArrivals as number) - (a.totalLateArrivals as number))
+                  .slice(0, 5);
+                if (!topLate.length) return <p className="px-4 py-6 text-center text-[12px] text-[#8E8E93]">No late arrivals</p>;
+                return topLate.map((emp, i) => (
+                  <div
+                    key={emp.employeeId}
+                    onClick={() => { setSelectedEmployee(emp.employeeId); setActiveTab("daily"); }}
+                    className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[#FFF7F4] ${i < topLate.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
+                  >
+                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold ${
+                      i === 0 ? "bg-red-100 text-red-600" : i === 1 ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-500"
+                    }`}>
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium text-[#111111] truncate">{emp.employeeName}</p>
+                      <p className="text-[10px] text-[#8E8E93]">{emp.location}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[14px] font-bold text-red-500">{emp.totalLateArrivals}</p>
+                      <p className="text-[9px] text-[#8E8E93]">late days</p>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* Shift Issues */}
+            <div className="bg-white rounded-2xl border border-[#E8E8E8] overflow-hidden animate-fade-up stagger-4">
+              <div className="px-4 py-3 border-b border-[#F0F0F0] flex items-center justify-between">
+                <h3 className="text-[13px] font-semibold text-[#111111]">Shift Issues</h3>
+                <button onClick={() => setActiveTab("mismatches")} className="text-[11px] font-medium text-[#FF6F3A] hover:underline">View all</button>
+              </div>
+              {(() => {
+                const shiftIssues = data.daily
+                  .filter(r => r.mistakeType !== "")
+                  .slice(0, 5);
+                if (!shiftIssues.length) return <p className="px-4 py-6 text-center text-[12px] text-[#8E8E93]">No shift issues</p>;
+                return shiftIssues.map((row, i) => {
+                  const isEmployee = row.mistakeType.startsWith("Employee");
+                  return (
+                    <div
+                      key={`${row.employeeId}-${row.date}-${i}`}
+                      onClick={() => { setSelectedEmployee(row.employeeId); setActiveTab("daily"); }}
+                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-[#FFF7F4] ${i < shiftIssues.length - 1 ? "border-b border-[#F0F0F0]" : ""}`}
+                    >
+                      <span className={`h-2 w-2 rounded-full flex-shrink-0 ${isEmployee ? "bg-amber-500" : "bg-blue-500"}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-medium text-[#111111] truncate">{row.employeeName}</p>
+                        <p className="text-[10px] text-[#8E8E93]">{row.date} · {row.location}</p>
+                      </div>
+                      <span className={`flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ring-1 ${
+                        isEmployee ? "bg-amber-50 text-amber-700 ring-amber-200/60" : "bg-blue-50 text-blue-700 ring-blue-200/60"
+                      }`}>
+                        {isEmployee ? "Employee" : "Shift"}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </div>
         </section>
       )}
